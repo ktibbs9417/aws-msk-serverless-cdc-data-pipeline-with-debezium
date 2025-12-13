@@ -54,6 +54,7 @@ Before synthesizing the CloudFormation, make sure getting a Debezium source conn
 1. Create a custom plugin
 
    (a) Download the MySQL connector plugin for the latest stable release from the [Debezium](https://debezium.io/releases/) site.<br/>
+   As of 12/01/2025 2.x series is compatible with MSK Connect
    (b) Download and extract the [AWS Secrets Manager Config Provider](https://www.confluent.io/hub/jcustenborder/kafka-config-provider-aws).<br/>
    (c) After completing steps (a), (b) above, you may have the following archives:
       - `debezium-connector-mysql-2.4.0.Final-plugin.tar.gz`: Debezim MySQL Connector
