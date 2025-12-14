@@ -200,6 +200,7 @@ Create a bastion host to access the Aurora MySQL cluster. Bastion host is used t
 
 1. Connect to the Aurora cluster writer node.
    <pre>
+    $ sudo pip install ec2instanceconnectcli
     $ BASTION_HOST_ID=$(aws cloudformation describe-stacks --stack-name <i>BastionHost</i> | jq -r '.Stacks[0].Outputs | .[] | select(.OutputKey | endswith("EC2InstanceId")) | .OutputValue')
     $ mssh -r <i>us-west-2</i> ec2-user@${BASTION_HOST_ID}
     [ec2-user@ip-172-31-7-186 ~]$ mysql -h<i>db-cluster-name</i>.cluster-<i>xxxxxxxxxxxx</i>.<i>region-name</i>.rds.amazonaws.com -uadmin -p
@@ -221,7 +222,6 @@ Create a bastion host to access the Aurora MySQL cluster. Bastion host is used t
    For more information, see [Connect using the EC2 Instance Connect CLI](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-connect-methods.html#ec2-instance-connect-connecting-ec2-cli).
    For example,
        <pre>
-       $ sudo pip install ec2instanceconnectcli
        $ mssh ec2-user@i-001234a4bf70dec41EXAMPLE # ec2-instance-id
        </pre>
 
