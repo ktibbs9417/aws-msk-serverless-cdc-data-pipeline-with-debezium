@@ -53,8 +53,9 @@ Before synthesizing the CloudFormation, make sure getting a Debezium source conn
 
 1. Create a custom plugin
 
-   (a) Download the MySQL connector plugin for the latest stable release from the [Debezium](https://debezium.io/releases/) site.<br/>
+   (a) Download the MySQL connector plugin for the latest stable release from the [Debezium](https://debezium.io/releases/2.4/) site.<br/>
    View supported MSK Connector version [here](https://docs.aws.amazon.com/msk/latest/developerguide/msk-connect-debeziumsource-connector-example-steps.html#:~:text=Create%20a%20custom%20plugin,1%20folder) 
+
    (b) Download and extract the [AWS Secrets Manager Config Provider](https://www.confluent.io/hub/jcustenborder/kafka-config-provider-aws).<br/>
    (c) After completing steps (a), (b) above, you may have the following archives:
       - `debezium-connector-mysql-2.4.0.Final-plugin.tar.gz`: Debezim MySQL Connector
@@ -103,9 +104,13 @@ Before synthesizing the CloudFormation, make sure getting a Debezium source conn
       value.converter.schemas.enable=<i>false</i>
       config.providers.secretManager.class=com.github.jcustenborder.kafka.config.aws.SecretsManagerConfigProvider
       config.providers=secretManager
-      config.providers.secretManager.param.aws.region=<i>us-east-1</i>
+      config.providers.secretManager.param.aws.region=<i>us-west-2</i>
       </pre>
-    (b) Run the following AWS CLI command to create your custom worker configuration.<br/>
+    (b) Run the following to convert to base64
+    <pre>
+      openssl base64 -A -in msk-connector-worker-config.txt > msk-connector-worker-config.b64
+    </pre>
+    (C) Run the following AWS CLI command to create your custom worker configuration.<br/>
         Replace the following values:
 
      - `my-worker-config-name` - a descriptive name for your custom worker configuration (e.g., `AuroraMySQLSource` )
@@ -114,7 +119,7 @@ Before synthesizing the CloudFormation, make sure getting a Debezium source conn
       <pre>
       aws kafkaconnect create-worker-configuration \
           --name <i>&lt;my-worker-config-name&gt;</i> \
-          --properties-file-content <i>&lt;encoded-properties-file-content-string&gt;</i>
+          --properties-file-content  file://<i>&lt;encoded-properties-file-content-string&gt;</i>
       </pre>
       You should see output similar to the following example on the AWS Web console.
       ![msk-connect-worker-configurations](assets/msk-connect-worker-configurations.png)
@@ -127,7 +132,7 @@ Before synthesizing the CloudFormation, make sure getting a Debezium source conn
         value.converter.schemas.enable=false
         config.providers.secretManager.class=com.github.jcustenborder.kafka.config.aws.SecretsManagerConfigProvider
         config.providers=secretManager
-        config.providers.secretManager.param.aws.region=us-east-1
+        config.providers.secretManager.param.aws.region=us-west-2
         </pre>
 
     :information_source: To learn more about how to create a Debezium source connector, see [Debezium source connector with configuration provider](https://docs.aws.amazon.com/msk/latest/developerguide/mkc-debeziumsource-connector-example.html)
@@ -165,6 +170,11 @@ Now you can now synthesize the CloudFormation template for this code.
 
 ## (Step 1) Creating Aurora MySQL cluster
 
+Run CDK Bootstrap
+<pre>
+(.venv) $ cdk bootstrap
+</pre>
+
 Create an Aurora MySQL Cluster
 <pre>
 (.venv) $ cdk deploy MSKServerlessToS3VpcStack \
@@ -191,7 +201,7 @@ Create a bastion host to access the Aurora MySQL cluster
 1. Connect to the Aurora cluster writer node.
    <pre>
     $ BASTION_HOST_ID=$(aws cloudformation describe-stacks --stack-name <i>BastionHost</i> | jq -r '.Stacks[0].Outputs | .[] | select(.OutputKey | endswith("EC2InstanceId")) | .OutputValue')
-    $ mssh -r <i>us-east-1</i> ec2-user@${BASTION_HOST_ID}
+    $ mssh -r <i>us-west-2</i> ec2-user@${BASTION_HOST_ID}
     [ec2-user@ip-172-31-7-186 ~]$ mysql -h<i>db-cluster-name</i>.cluster-<i>xxxxxxxxxxxx</i>.<i>region-name</i>.rds.amazonaws.com -uadmin -p
     Enter password:
     Welcome to the MariaDB monitor.  Commands end with ; or \g.
@@ -331,7 +341,7 @@ Create a Kinesis Data Firehose to deliver CDC coming from MSK Serverless to S3
 1. Generate test data.
    <pre>
     $ BASTION_HOST_ID=$(aws cloudformation describe-stacks --stack-name <i>BastionHost</i> | jq -r '.Stacks[0].Outputs | .[] | select(.OutputKey | endswith("EC2InstanceId")) |.OutputValue')
-    $ mssh -r <i>us-east-1</i> ec2-user@${BASTION_HOST_ID}
+    $ mssh -r <i>us-west-2</i> ec2-user@${BASTION_HOST_ID}
     [ec2-user@ip-172-31-7-186 ~]$ cat <&ltEOF >requirements-dev.txt
     > boto3
     > dataset==1.5.2
@@ -600,7 +610,7 @@ Enjoy!
  * Amazon MSK Serverless does not allow `auto.create.topics.enable` to be set to `true`.
 
     ```
-    $ aws kafka update-cluster-configuration --cluster-arn arn:aws:kafka:us-east-1:123456789012:cluster/msk/39bb8562-e1b9-42a5-ba82-703ac0dee7ea-s1 --configuration-info file://msk-cluster-config.json --current-version K2EUQ1WTGCTBG2
+    $ aws kafka update-cluster-configuration --cluster-arn arn:aws:kafka:us-west-2:123456789012:cluster/msk/39bb8562-e1b9-42a5-ba82-703ac0dee7ea-s1 --configuration-info file://msk-cluster-config.json --current-version K2EUQ1WTGCTBG2
 
     An error occurred (BadRequestException) when calling the UpdateClusterConfiguration operation: This operation cannot be performed on serverless clusters.
     ```
