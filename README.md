@@ -198,7 +198,7 @@ Create a bastion host to access the Aurora MySQL cluster. Bastion host is used t
 
 <b><em>In order to set up the Aurora MySQL, you need to connect the Aurora MySQL cluster on an EC2 Bastion host.</em></b>
 
-1. Connect to the Aurora cluster writer node.
+1. Connect to the Aurora cluster writer node. NOTE: Password for the database is stored in AWS Secrets Manager
    <pre>
     $ sudo pip install ec2instanceconnectcli
     $ BASTION_HOST_ID=$(aws cloudformation describe-stacks --stack-name <i>BastionHost</i> | jq -r '.Stacks[0].Outputs | .[] | select(.OutputKey | endswith("EC2InstanceId")) | .OutputValue')
