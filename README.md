@@ -191,7 +191,7 @@ Create a MSK Serverless Cluster
 
 ## (Step 3) Confirm that binary logging is enabled
 
-Create a bastion host to access the Aurora MySQL cluster
+Create a bastion host to access the Aurora MySQL cluster. Bastion host is used to connect to the Aurora MySQL writer database.
 <pre>
 (.venv) $ cdk deploy BastionHost
 </pre>
