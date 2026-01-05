@@ -14,7 +14,8 @@ from cdk_stacks import (
   KafkaConnectorStack,
   KinesisFirehoseStack,
   BastionHostEC2InstanceStack,
-  S3Stack
+  S3Stack,
+  GlueSchemaRegistryStack
 )
 
 AWS_ENV = cdk.Environment(
@@ -39,6 +40,12 @@ msk_stack = MSKServerlessStack(app, 'MSKServerlessStack',
 )
 msk_stack.add_dependency(aurora_mysql_stack)
 
+glue_registry_stack = GlueSchemaRegistryStack(app, 'GlueSchemaRegistryStack',
+  msk_stack.msk_cluster_name,
+  env=AWS_ENV
+)
+glue_registry_stack.add_dependency(msk_stack)
+
 msk_policy_stack = MSKClusterPolicyStack(app, 'MSKClusterPolicy',
   msk_stack.msk_cluster_arn,
   env=AWS_ENV
@@ -61,9 +68,10 @@ msk_connector_stack = KafkaConnectorStack(app, 'KafkaConnectorStack',
   aurora_mysql_stack.rds_credentials,
   msk_stack.msk_cluster_name,
   msk_stack.msk_cluster_vpc_configs,
+  glue_registry_stack.registry_name,
   env=AWS_ENV
 )
-msk_connector_stack.add_dependency(bastion_host)
+msk_connector_stack.add_dependency(glue_registry_stack)
 
 s3_stack = S3Stack(app, 'S3AsFirehoseDestinationStack',
   env=AWS_ENV

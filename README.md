@@ -71,6 +71,20 @@ Before synthesizing the CloudFormation, make sure getting a Debezium source conn
     $ cd debezium-connector-mysql/jcustenborder-kafka-config-provider-aws-0.1.2/lib
     $ wget https://repo1.maven.org/maven2/com/google/guava/guava/31.1-jre/guava-31.1-jre.jar
     $ cd ../../
+    ```
+
+   (d) **(Optional) Add AWS Glue Schema Registry support**<br/>
+    To enable schema evolution with AWS Glue Schema Registry, download the Glue SerDe libraries:
+    ```
+    $ cd debezium-connector-mysql/debezium-connector-mysql
+    $ wget https://repo1.maven.org/maven2/software/amazon/glue/schema-registry-serde/1.1.19/schema-registry-serde-1.1.19.jar
+    $ wget https://repo1.maven.org/maven2/software/amazon/glue/schema-registry-kafkaconnect-converter/1.1.19/schema-registry-kafkaconnect-converter-1.1.19.jar
+    $ wget https://repo1.maven.org/maven2/org/apache/avro/avro/1.11.3/avro-1.11.3.jar
+    $ cd ../../
+    ```
+
+   (e) Create the plugin ZIP and upload to S3:
+    ```
     $ zip -9 -r ../debezium-connector-mysql-v2.4.0.zip *
     $ cd ..
     $ aws s3 cp debezium-connector-mysql-v2.4.0.zip s3://my-bucket/path/
@@ -97,11 +111,30 @@ Before synthesizing the CloudFormation, make sure getting a Debezium source conn
 
    (a) Copy the following worker configuration properties into a file.<br/>
       To learn more about the configuration properties for the AWS Secrets Manager Config Provider, see [SecretsManagerConfigProvider](https://jcustenborder.github.io/kafka-connect-documentation/projects/kafka-config-provider-aws/configProviders/SecretsManagerConfigProvider.html) in the plugin's documentation.
+
+      **Standard JSON format (without Glue Schema Registry):**
       <pre>
       key.converter=<i>org.apache.kafka.connect.storage.StringConverter</i>
       key.converter.schemas.enable=<i>false</i>
       value.converter=<i>org.apache.kafka.connect.json.JsonConverter</i>
       value.converter.schemas.enable=<i>false</i>
+      config.providers.secretManager.class=com.github.jcustenborder.kafka.config.aws.SecretsManagerConfigProvider
+      config.providers=secretManager
+      config.providers.secretManager.param.aws.region=<i>us-west-2</i>
+      </pre>
+
+      **With AWS Glue Schema Registry (Avro format with schema evolution):**
+      <pre>
+      key.converter=com.amazonaws.services.schemaregistry.kafkaconnect.AWSKafkaAvroConverter
+      key.converter.region=<i>us-west-2</i>
+      key.converter.schemaAutoRegistrationEnabled=true
+      key.converter.avroRecordType=GENERIC_RECORD
+      value.converter=com.amazonaws.services.schemaregistry.kafkaconnect.AWSKafkaAvroConverter
+      value.converter.region=<i>us-west-2</i>
+      value.converter.schemaAutoRegistrationEnabled=true
+      value.converter.avroRecordType=GENERIC_RECORD
+      value.converter.registry.name=<i>your-registry-name</i>
+      value.converter.compatibility=BACKWARD
       config.providers.secretManager.class=com.github.jcustenborder.kafka.config.aws.SecretsManagerConfigProvider
       config.providers=secretManager
       config.providers.secretManager.param.aws.region=<i>us-west-2</i>
@@ -136,6 +169,8 @@ Before synthesizing the CloudFormation, make sure getting a Debezium source conn
         </pre>
 
     :information_source: To learn more about how to create a Debezium source connector, see [Debezium source connector with configuration provider](https://docs.aws.amazon.com/msk/latest/developerguide/mkc-debeziumsource-connector-example.html)
+
+    :information_source: For Glue Schema Registry integration, see [Build an end-to-end change data capture with Amazon MSK Connect and AWS Glue Schema Registry](https://aws.amazon.com/blogs/big-data/build-an-end-to-end-change-data-capture-with-amazon-msk-connect-and-aws-glue-schema-registry/)
 
 3. Set up the cdk context configuration file, `cdk.context.json`.
 

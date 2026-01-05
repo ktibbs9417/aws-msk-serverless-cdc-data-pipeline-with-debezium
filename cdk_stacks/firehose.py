@@ -70,6 +70,18 @@ class KinesisFirehoseStack(Stack):
         "kafka-cluster:DescribeGroup"
       ]
     }))
+    firehose_role_policy_doc.add_statements(aws_iam.PolicyStatement(**{
+      "effect": aws_iam.Effect.ALLOW,
+      "actions": [
+        "glue:GetRegistry",
+        "glue:GetSchema",
+        "glue:GetSchemaVersion"
+      ],
+      "resources": [
+        f"arn:aws:glue:{cdk.Aws.REGION}:{cdk.Aws.ACCOUNT_ID}:registry/*",
+        f"arn:aws:glue:{cdk.Aws.REGION}:{cdk.Aws.ACCOUNT_ID}:schema/*"
+      ]
+    }))
 
     firehose_role = aws_iam.Role(self, "KinesisFirehoseServiceRole",
       role_name=f"KinesisFirehoseServiceRole-{msk_cluster_name}-{cdk.Aws.REGION}",
@@ -94,8 +106,28 @@ class KinesisFirehoseStack(Stack):
         "logStreamName": "DestinationDelivery"
       },
       compression_format="UNCOMPRESSED", # [GZIP | HADOOP_SNAPPY | Snappy | UNCOMPRESSED | ZIP]
+      # Enable data format conversion
       data_format_conversion_configuration={
-        "enabled": False
+        "enabled": True,
+        "inputFormatConfiguration": {
+          "deserializer": {
+            "openXJsonSerDe": {}  # For JSON, or use HiveJsonSerDe for Avro
+          }
+        },
+        "outputFormatConfiguration": {
+          "serializer": {
+            "parquetSerDe": {
+              "compression": "SNAPPY"
+            }
+          }
+        },
+        "schemaConfiguration": {
+          "catalogId": cdk.Aws.ACCOUNT_ID,
+          "databaseName": "cdc_database",  # Create this Glue database
+          "tableName": "retail_trans",      # Create this Glue table
+          "region": cdk.Aws.REGION,
+          "roleArn": firehose_role.role_arn
+        }
       },
       processing_configuration={
         "enabled": False

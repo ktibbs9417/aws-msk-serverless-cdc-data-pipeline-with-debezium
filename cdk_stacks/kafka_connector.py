@@ -72,7 +72,7 @@ class KafkaConnectorStack(Stack):
 
   def __init__(self, scope: Construct, construct_id: str,
     vpc, db_hostname, sg_rds_client, rds_credentials,
-    msk_cluster_name, msk_cluster_vpc_configs,
+    msk_cluster_name, msk_cluster_vpc_configs,glue_registry_name,
     **kwargs) -> None:
 
     super().__init__(scope, construct_id, **kwargs)
@@ -135,6 +135,30 @@ class KafkaConnectorStack(Stack):
       ],
       "resources": [ rds_credentials.secret_full_arn ]
     }))
+    glue_schema_registry_policy_doc = aws_iam.PolicyDocument()
+    glue_schema_registry_policy_doc.add_statements(aws_iam.PolicyStatement(**{
+      "effect": aws_iam.Effect.ALLOW,
+      "actions": [
+        "glue:GetRegistry",
+        "glue:ListRegistries",
+        "glue:GetSchema",
+        "glue:ListSchemas",
+        "glue:GetSchemaVersion",
+        "glue:ListSchemaVersions",
+        "glue:GetSchemaByDefinition",
+        "glue:GetSchemaVersionsDiff",
+        "glue:CheckSchemaVersionValidity",
+        "glue:RegisterSchemaVersion",
+        "glue:CreateSchema",
+        "glue:UpdateSchema",
+        "glue:TagResource",
+        "glue:GetTags"
+        ],
+        "resources": [
+          f"arn:aws:glue:{cdk.Aws.REGION}:{cdk.Aws.ACCOUNT_ID}:registry/{glue_registry_name}",
+          f"arn:aws:glue:{cdk.Aws.REGION}:{cdk.Aws.ACCOUNT_ID}:schema/{glue_registry_name}/*"
+        ]
+      }))
 
     #XXX: For more information, see https://docs.aws.amazon.com/msk/latest/developerguide/create-iam-role.html
     msk_connector_execution_role = aws_iam.Role(self, 'MSKConnectorExecutionRole',
@@ -143,7 +167,8 @@ class KafkaConnectorStack(Stack):
       path='/',
       inline_policies={
         'KafkaClusterAccessPolicy': kafka_cluster_access_policy_doc,
-        'SecretsManagerReadOnlyAccessPolicy': secretmanager_readonly_access_policy_doc
+        'SecretsManagerReadOnlyAccessPolicy': secretmanager_readonly_access_policy_doc,
+         'GlueSchemaRegistryPolicy': glue_schema_registry_policy_doc,
       }
     )
 
@@ -194,6 +219,20 @@ class KafkaConnectorStack(Stack):
         "schema.history.internal.producer.sasl.mechanism": "AWS_MSK_IAM",
         "schema.history.internal.producer.sasl.jaas.config": "software.amazon.msk.auth.iam.IAMLoginModule required;",
         "schema.history.internal.producer.sasl.client.callback.handler.class": "software.amazon.msk.auth.iam.IAMClientCallbackHandler",
+
+        "key.converter": "com.amazonaws.services.schemaregistry.kafkaconnect.AWSKafkaAvroConverter",
+        "key.converter.region": cdk.Aws.REGION,
+        "key.converter.schemaAutoRegistrationEnabled": "true",
+        "key.converter.avroRecordType": "GENERIC_RECORD",
+        "key.converter.registry.name": glue_registry_name,
+
+        # Value converter - use Avro with Glue Schema Registry
+        "value.converter": "com.amazonaws.services.schemaregistry.kafkaconnect.AWSKafkaAvroConverter",
+        "value.converter.region": cdk.Aws.REGION,
+        "value.converter.schemaAutoRegistrationEnabled": "true",
+        "value.converter.avroRecordType": "GENERIC_RECORD",
+        "value.converter.registry.name": glue_registry_name,
+        "value.converter.compatibility": "BACKWARD",  # Schema evolution mode
       },
       connector_name=msk_connector_name,
       kafka_cluster=aws_kafkaconnect.CfnConnector.KafkaClusterProperty(

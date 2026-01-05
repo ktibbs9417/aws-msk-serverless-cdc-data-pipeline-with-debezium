@@ -89,6 +89,8 @@ def main():
       'trans_datetime': fake.date_time_ad(start_datetime=START_DATETIME).strftime('%Y-%m-%d %H:%M:%S')
     }
     record = json.dumps(json_record)
+    print(f"""Record: 
+    {record}""")
     sql_stmt = INSERT_SQL_FMT.format(database=options.database, table=options.table, **json_record)
 
     if options.dry_run:

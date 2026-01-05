@@ -6,3 +6,4 @@ from .kafka_connector import KafkaConnectorStack
 from .bastion_host import BastionHostEC2InstanceStack
 from .firehose import KinesisFirehoseStack
 from .s3 import S3Stack
+from .glue_schema_registry import GlueSchemaRegistryStack

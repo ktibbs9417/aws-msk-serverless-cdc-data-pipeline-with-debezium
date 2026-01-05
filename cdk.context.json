@@ -2,8 +2,8 @@
   "vpc_name": "default",
   "db_cluster_name": "retail",
   "msk_cluster_name": "retail-trans",
-  "msk_connector_worker_configuration_name": "debezium-worker",
-  "msk_connector_custom_plugin_name": "debezium-connector-mysql-v2-4-0",
+  "msk_connector_worker_configuration_name": "debezium-worker-glue",
+  "msk_connector_custom_plugin_name": "debezium-connector-mysql-glue-v2-4-0",
   "msk_connector_name": "retail-changes",
   "msk_connector_configuration": {
     "tasks.max": "1",
@@ -13,6 +13,11 @@
     "topic.creation.default.replication.factor": "2",
     "include.schema.changes": "true",
     "schema.history.internal.kafka.topic": "schema-changes.testdb"
+  },
+  "glue_schema_registry": {
+    "registry_name": "retail-trans-schema-registry",
+    "compatibility_mode": "NONE",
+    "data_format": "AVRO"
   },
   "firehose": {
     "buffering_hints": {
